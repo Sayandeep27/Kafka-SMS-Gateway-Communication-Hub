@@ -1,11 +1,7 @@
 package com.icici.config;
  
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
  
 public class JpaConfig {
-    
-private static Logger logger = LogManager.getLogger();
     
 //  @Autowired
 //  private Environment env;
