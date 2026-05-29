@@ -1,0 +1,6 @@
+com\icici\dedmicroservice\kafka\DEDKafkaConsumer.class
+com\icici\dedmicroservice\config\KafkaConsumerConfig.class
+com\icici\dedmicroservice\dto\DEDMessagePayload.class
+com\icici\dedmicroservice\DEDMicroserviceApplication.class
+com\icici\dedmicroservice\service\DEDMessageService.class
+com\icici\dedmicroservice\repository\DEDMessageRepository.class

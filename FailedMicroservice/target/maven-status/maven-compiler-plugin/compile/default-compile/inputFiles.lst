@@ -1,0 +1,6 @@
+E:\DISPENSER-KAFKA-SERVICE-L2\FailedMicroservice\src\main\java\com\icici\failedmicroservice\config\KafkaConsumerConfig.java
+E:\DISPENSER-KAFKA-SERVICE-L2\FailedMicroservice\src\main\java\com\icici\failedmicroservice\dto\FailedMessagePayload.java
+E:\DISPENSER-KAFKA-SERVICE-L2\FailedMicroservice\src\main\java\com\icici\failedmicroservice\FailedMicroserviceApplication.java
+E:\DISPENSER-KAFKA-SERVICE-L2\FailedMicroservice\src\main\java\com\icici\failedmicroservice\kafka\FailedKafkaConsumer.java
+E:\DISPENSER-KAFKA-SERVICE-L2\FailedMicroservice\src\main\java\com\icici\failedmicroservice\repository\FailedMessageRepository.java
+E:\DISPENSER-KAFKA-SERVICE-L2\FailedMicroservice\src\main\java\com\icici\failedmicroservice\service\FailedMessageService.java

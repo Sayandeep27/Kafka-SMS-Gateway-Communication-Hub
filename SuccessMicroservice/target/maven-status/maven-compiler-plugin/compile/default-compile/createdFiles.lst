@@ -1,0 +1,6 @@
+com\icici\successmicroservice\dto\SuccessMessagePayload.class
+com\icici\successmicroservice\config\KafkaConsumerConfig.class
+com\icici\successmicroservice\service\SuccessMessageService.class
+com\icici\successmicroservice\kafka\SuccessKafkaConsumer.class
+com\icici\successmicroservice\repository\SuccessMessageRepository.class
+com\icici\successmicroservice\SuccessMicroserviceApplication.class

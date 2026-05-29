@@ -1,0 +1,6 @@
+com\icici\failedmicroservice\config\KafkaConsumerConfig.class
+com\icici\failedmicroservice\FailedMicroserviceApplication.class
+com\icici\failedmicroservice\repository\FailedMessageRepository.class
+com\icici\failedmicroservice\kafka\FailedKafkaConsumer.class
+com\icici\failedmicroservice\service\FailedMessageService.class
+com\icici\failedmicroservice\dto\FailedMessagePayload.class

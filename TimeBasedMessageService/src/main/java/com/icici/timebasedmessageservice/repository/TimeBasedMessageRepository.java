@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -23,7 +25,7 @@ public class TimeBasedMessageRepository {
             JdbcTemplate jdbcTemplate,
             @Value("${timebased.db.table-name}") String tableName,
             @Value("${timebased.db.pipe-id:}") String pipeId,
-            @Value("${timebased.db.fetch-limit:1000}") int fetchLimit) {
+            @Value("${timebased.db.fetch-limit:10}") int fetchLimit) {
         this.jdbcTemplate = jdbcTemplate;
         this.tableName = validateTableName(tableName);
         this.pipeId = pipeId == null ? "" : pipeId.trim();
@@ -32,21 +34,34 @@ public class TimeBasedMessageRepository {
 
     public List<TimeBasedMessageRecord> fetchReadyMessages() {
         StringBuilder sql = new StringBuilder()
-                .append("SELECT TOP ").append(fetchLimit).append(" ")
+                .append("SELECT ")
                 .append("MSG_ID, DEPT_ID, APP_ID, APP_CODE, PARTNER_CODE, PIN, POP_MAIL_ID, POP_SENDER_ADDR, ")
                 .append("DEPT_MSG_ID, MOBILE_NO, MSG_TEXT, MSG_SEND_FROM_DTTIME, MSG_SEND_TO_DTTIME, ")
                 .append("NO_DELVRY_FROMTIME, NO_DELVRY_TOTIME, MSG_HTTP_MODE, MSG_STTS, RQST_ACK_ID, ")
                 .append("RQST_ACK_DTTIME, INFO1, INFO2, INFO3, INFO4, SEND_COUNT, PIPE_ID, DEPT_ID_OLD, APP_ID_OLD, ")
                 .append("PRFRRD_CHANNEL, ALT_CHANNEL, ALT_CHANNEL_SEND_FROMDTTIME, ALT_CHANNEL_SEND_TODTTIME, ")
                 .append("MSG_SOURCE_TIMESTAMP ")
-                .append("FROM ").append(tableName).append(" WITH (NOLOCK) ")
-                .append("WHERE MSG_STTS = ?");
+                .append("FROM ").append(tableName).append(" ")
+                .append("WHERE MSG_STTS = ? ")
+                .append("AND (MSG_SEND_FROM_DTTIME IS NULL OR datetime(MSG_SEND_FROM_DTTIME) <= CURRENT_TIMESTAMP) ")
+                .append("AND (MSG_SEND_TO_DTTIME IS NULL OR datetime(MSG_SEND_TO_DTTIME) >= CURRENT_TIMESTAMP) ")
+                .append("AND (")
+                .append("NO_DELVRY_FROMTIME IS NULL OR trim(NO_DELVRY_FROMTIME) = '' ")
+                .append("OR NO_DELVRY_TOTIME IS NULL OR trim(NO_DELVRY_TOTIME) = '' ")
+                .append("OR (")
+                .append("CASE ")
+                .append("WHEN printf('%04d', CAST(NO_DELVRY_FROMTIME AS INTEGER)) <= printf('%04d', CAST(NO_DELVRY_TOTIME AS INTEGER)) ")
+                .append("THEN NOT (strftime('%H%M','now','localtime') BETWEEN printf('%04d', CAST(NO_DELVRY_FROMTIME AS INTEGER)) AND printf('%04d', CAST(NO_DELVRY_TOTIME AS INTEGER))) ")
+                .append("ELSE NOT (strftime('%H%M','now','localtime') >= printf('%04d', CAST(NO_DELVRY_FROMTIME AS INTEGER)) OR strftime('%H%M','now','localtime') <= printf('%04d', CAST(NO_DELVRY_TOTIME AS INTEGER))) ")
+                .append("END")
+                .append(")")
+                .append(")");
 
         if (!pipeId.isEmpty()) {
             sql.append(" AND PIPE_ID = ?");
         }
 
-        sql.append(" ORDER BY MSG_ID");
+        sql.append(" ORDER BY MSG_ID LIMIT ").append(fetchLimit);
 
         if (!pipeId.isEmpty()) {
             return jdbcTemplate.query(sql.toString(), rowMapper(), "R", pipeId);
@@ -95,7 +110,30 @@ public class TimeBasedMessageRepository {
 
     private LocalDateTime toLocalDateTime(ResultSet rs, String column) throws SQLException {
         Timestamp timestamp = rs.getTimestamp(column);
-        return timestamp == null ? null : timestamp.toLocalDateTime();
+        if (timestamp != null) {
+            return timestamp.toLocalDateTime();
+        }
+        String value = rs.getString(column);
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return parseDateTime(value);
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        String normalized = value.trim().replace('T', ' ');
+        DateTimeFormatter[] formatters = new DateTimeFormatter[] {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        };
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDateTime.parse(normalized, formatter);
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+        return null;
     }
 
     private String validateTableName(String candidate) {
