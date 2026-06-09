@@ -1,12 +1,11 @@
-package com.icici.dedmicroservice.repository;
-
+package com.icici.dedmicroservice.repository
 import com.icici.dedmicroservice.dto.DEDMessagePayload;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class DEDMessageRepository {
-
+  
     private final JdbcTemplate jdbcTemplate;
 
     public DEDMessageRepository(JdbcTemplate jdbcTemplate) {

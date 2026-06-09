@@ -106,9 +106,9 @@ public class TimeBasedMessageRepository {
             record.setMsgSourceTimestamp(toLocalDateTime(rs, "MSG_SOURCE_TIMESTAMP"));
             return record;
         };
-    }
+    }   
 
-    private LocalDateTime toLocalDateTime(ResultSet rs, String column) throws SQLException {
+    private LocalDateTime toLocalDateTime(Re sultSet rs, String column) throws SQLException {
         Timestamp timestamp = rs.getTimestamp(column);
         if (timestamp != null) {
             return timestamp.toLocalDateTime();
