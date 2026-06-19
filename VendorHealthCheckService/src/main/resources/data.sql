@@ -25,11 +25,12 @@ INSERT INTO TBL_VENDOR_HEALTH_DETAILS (
     VENDOR_CD,
     HEALTHSTATUS,
     CONSECUTIVEERRORCOUNT,
+    CONSECUTIVESUCCESSCOUNT,
     LastFailureTime,
     LastSuccessTime,
     DownSince,
     UpdatedOn
 ) VALUES
-('Airt_TRN_A', 'UP', 40, NULL, NULL, NULL, datetime('now')),
-('Vendor_B', 'UP', 2, NULL, NULL, NULL, datetime('now')),
-('Vendor_C', 'UP', 5, NULL, NULL, NULL, datetime('now'));
+('Airt_TRN_A', 'UP', 40, 0, NULL, NULL, NULL, datetime('now')),
+('Vendor_B', 'UP', 2, 0, NULL, NULL, NULL, datetime('now')),
+('Vendor_C', 'UP', 5, 0, NULL, NULL, NULL, datetime('now'));

@@ -7,6 +7,7 @@ public class VendorHealthDetail {
     private String vendorCd;
     private String healthStatus;
     private int consecutiveErrorCount;
+    private int consecutiveSuccessCount;
     private LocalDateTime lastFailureTime;
     private LocalDateTime lastSuccessTime;
     private LocalDateTime downSince;
@@ -20,6 +21,8 @@ public class VendorHealthDetail {
     public void setHealthStatus(String healthStatus) { this.healthStatus = healthStatus; }
     public int getConsecutiveErrorCount() { return consecutiveErrorCount; }
     public void setConsecutiveErrorCount(int consecutiveErrorCount) { this.consecutiveErrorCount = consecutiveErrorCount; }
+    public int getConsecutiveSuccessCount() { return consecutiveSuccessCount; }
+    public void setConsecutiveSuccessCount(int consecutiveSuccessCount) { this.consecutiveSuccessCount = consecutiveSuccessCount; }
     public LocalDateTime getLastFailureTime() { return lastFailureTime; }
     public void setLastFailureTime(LocalDateTime lastFailureTime) { this.lastFailureTime = lastFailureTime; }
     public LocalDateTime getLastSuccessTime() { return lastSuccessTime; }

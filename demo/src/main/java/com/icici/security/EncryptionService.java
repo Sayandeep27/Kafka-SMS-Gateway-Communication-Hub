@@ -113,7 +113,7 @@ public class EncryptionService {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
         
         try {
-//          PublicKey publicKey = loadPublicKey("D:\\key\\ICICI_UAT_PublicCert.pem");
+//          PublicKey publicKey = loadPublicKey("D:\\ key\\ICICI_UAT_PublicCert.pem");
             PublicKey publicKey =load(publicKeyPath);
             log.info("publicKeyPath-------------"+publicKeyPath);
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);

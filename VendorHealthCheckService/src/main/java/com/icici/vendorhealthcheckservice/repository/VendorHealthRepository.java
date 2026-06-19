@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -38,22 +39,52 @@ public class VendorHealthRepository {
     }
 
     public List<VendorHealthDetail> fetchAllDetails() {
-        String sql = "SELECT ID, VENDOR_CD, HEALTHSTATUS, CONSECUTIVEERRORCOUNT, LastFailureTime, LastSuccessTime, DownSince, UpdatedOn "
+        String sql = "SELECT ID, VENDOR_CD, HEALTHSTATUS, CONSECUTIVEERRORCOUNT, CONSECUTIVESUCCESSCOUNT, LastFailureTime, LastSuccessTime, DownSince, UpdatedOn "
                 + "FROM " + detailsTable + " ORDER BY ID";
         return jdbcTemplate.query(sql, detailRowMapper());
     }
 
     public int markVendorDown(VendorHealthDetail vendor) {
-        String sql = "UPDATE " + detailsTable + " SET HEALTHSTATUS = ?, CONSECUTIVEERRORCOUNT = ?, LastFailureTime = ?, DownSince = ?, UpdatedOn = ? "
+        String sql = "UPDATE " + detailsTable + " SET HEALTHSTATUS = ?, CONSECUTIVEERRORCOUNT = ?, CONSECUTIVESUCCESSCOUNT = ?, LastFailureTime = ?, DownSince = ?, UpdatedOn = ? "
                 + "WHERE ID = ?";
         LocalDateTime now = LocalDateTime.now();
         return jdbcTemplate.update(sql,
                 "DOWN",
                 0,
+                0,
                 now.toString(),
                 vendor.getDownSince() == null ? now.toString() : vendor.getDownSince().toString(),
                 now.toString(),
                 vendor.getId());
+    }
+
+    public int markVendorUp(VendorHealthDetail vendor) {
+        String sql = "UPDATE " + detailsTable + " SET HEALTHSTATUS = ?, CONSECUTIVEERRORCOUNT = ?, CONSECUTIVESUCCESSCOUNT = ?, LastSuccessTime = ?, DownSince = ?, UpdatedOn = ? "
+                + "WHERE ID = ?";
+        LocalDateTime now = LocalDateTime.now();
+        return jdbcTemplate.update(sql,
+                "UP",
+                vendor.getConsecutiveErrorCount(),
+                0,
+                now.toString(),
+                null,
+                now.toString(),
+                vendor.getId());
+    }
+
+    public int updateSuccessProgress(VendorHealthDetail vendor, int successCount, LocalDateTime lastSuccessTime) {
+        String sql = "UPDATE " + detailsTable + " SET CONSECUTIVESUCCESSCOUNT = ?, LastSuccessTime = ?, UpdatedOn = ? WHERE ID = ?";
+        LocalDateTime now = LocalDateTime.now();
+        return jdbcTemplate.update(sql,
+                successCount,
+                lastSuccessTime == null ? now.toString() : lastSuccessTime.toString(),
+                now.toString(),
+                vendor.getId());
+    }
+
+    public int resetSuccessProgress(VendorHealthDetail vendor) {
+        String sql = "UPDATE " + detailsTable + " SET CONSECUTIVESUCCESSCOUNT = 0, UpdatedOn = ? WHERE ID = ?";
+        return jdbcTemplate.update(sql, LocalDateTime.now().toString(), vendor.getId());
     }
 
     private RowMapper<VendorHealthConfig> configRowMapper() {
@@ -75,6 +106,7 @@ public class VendorHealthRepository {
             detail.setVendorCd(rs.getString("VENDOR_CD"));
             detail.setHealthStatus(rs.getString("HEALTHSTATUS"));
             detail.setConsecutiveErrorCount(rs.getInt("CONSECUTIVEERRORCOUNT"));
+            detail.setConsecutiveSuccessCount(rs.getInt("CONSECUTIVESUCCESSCOUNT"));
             detail.setLastFailureTime(toLocalDateTime(rs, "LastFailureTime"));
             detail.setLastSuccessTime(toLocalDateTime(rs, "LastSuccessTime"));
             detail.setDownSince(toLocalDateTime(rs, "DownSince"));
