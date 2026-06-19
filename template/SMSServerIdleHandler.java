@@ -273,14 +273,14 @@ public class SMSServerIdleHandler extends ChannelDuplexHandler {
             if (lstVal.get(0).equalsIgnoreCase("SUCCESS")) {
                 strXMLOrg = lstVal.get(1);
                 // if (validClient(e.getRemoteAddress().toString())) {
-                do {
+                do {             
                     String strXML = "";
                     if (strXMLOrg.length() > strXMLOrg.indexOf("#END#") + 5) {
                         strXML = strXMLOrg.substring(0, strXMLOrg.indexOf("#END#") + 5);
                         strXMLOrg = strXMLOrg.substring(strXMLOrg.indexOf("#END#") + 5);
                     } else if (strXMLOrg.length() == strXMLOrg.indexOf("#END#") + 5) {
                         strXML = strXMLOrg.substring(0, strXMLOrg.indexOf("#END#") + 5);
-                        strXMLOrg = "";
+                        strXMLOrg = "";                   
                     }
 
                     String[] tokens = strXML.split("\\" + SeperatorString);
@@ -1400,7 +1400,7 @@ private String getResponse(String strReq, String localAddress, Channel cnl) {
         errorDump("", "", "", strReq, GlobalFunc.getDBDateTime(), "Error in messageReceived::" + e.getMessage(),
                 localAddress.substring(localAddress.indexOf(":") + 1),
                 localAddress.substring(1, localAddress.indexOf(":")), sourceIP, sourcePort);
-
+ 
     } finally {
         if (strReader != null) {
             strReader.close();
@@ -1508,4 +1508,4 @@ public long generate9DigitKey(String localPort) {
     return uniqueKey;
 }
 
-}
+ 
