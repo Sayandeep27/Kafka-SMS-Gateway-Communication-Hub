@@ -61,13 +61,8 @@ public class VendorHealthCheckService {
             try {
                 if ("UP".equalsIgnoreCase(vendor.getHealthStatus())
                         && vendor.getConsecutiveErrorCount() > config.getFailureThresholdCount()) {
-                    if (!"DOWN".equalsIgnoreCase(vendor.getHealthStatus())) {
-                        vendor.setDownSince(vendor.getDownSince() == null ? now : vendor.getDownSince());
-                    } else if (vendor.getDownSince() == null) {
-                        vendor.setDownSince(now);
-                    }
+                    vendor.setDownSince(vendor.getDownSince() == null ? now : vendor.getDownSince());
                     repository.markVendorDown(vendor);
-                    notifier.notifyVendorStatus(vendor.getVendorCd(), "DOWN");
                     updated++;
                     log.info("Vendor {} marked DOWN because consecutive error count {} exceeded threshold {}",
                             vendor.getVendorCd(), vendor.getConsecutiveErrorCount(), config.getFailureThresholdCount());
@@ -75,14 +70,13 @@ public class VendorHealthCheckService {
                 }
 
                 if ("DOWN".equalsIgnoreCase(vendor.getHealthStatus())) {
-                    String response = notifier.notifyVendorStatus(vendor.getVendorCd(), "UP");
-                    if (response != null && !response.isBlank()) {
+                    boolean success = notifier.probeVendorGateway(vendor.getVendorCd());
+                    if (success) {
                         int nextSuccessCount = vendor.getConsecutiveSuccessCount() + 1;
                         vendor.setConsecutiveSuccessCount(nextSuccessCount);
                         repository.updateSuccessProgress(vendor, nextSuccessCount, now);
                         if (nextSuccessCount >= config.getSuccessThresholdCount()) {
                             repository.markVendorUp(vendor);
-                            notifier.notifyVendorStatus(vendor.getVendorCd(), "UP");
                             updated++;
                             log.info("Vendor {} marked UP after {} consecutive successful checks",
                                     vendor.getVendorCd(), nextSuccessCount);
