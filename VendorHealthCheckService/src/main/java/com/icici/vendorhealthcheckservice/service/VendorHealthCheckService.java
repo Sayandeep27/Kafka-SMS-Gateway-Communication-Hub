@@ -54,50 +54,28 @@ public class VendorHealthCheckService {
     }
 
     private void processVendors(VendorHealthConfig config, LocalDateTime now) {
-        List<VendorHealthDetail> vendors = repository.fetchAllDetails();
+        List<VendorHealthDetail> vendors = repository.fetchDownVendors();
         int updated = 0;
 
         for (VendorHealthDetail vendor : vendors) {
             try {
-                if ("UP".equalsIgnoreCase(vendor.getHealthStatus())
-                        && vendor.getConsecutiveErrorCount() > config.getFailureThresholdCount()) {
-                    vendor.setDownSince(vendor.getDownSince() == null ? now : vendor.getDownSince());
-                    repository.markVendorDown(vendor);
-                    updated++;
-                    log.info("Vendor {} marked DOWN because consecutive error count {} exceeded threshold {}",
-                            vendor.getVendorCd(), vendor.getConsecutiveErrorCount(), config.getFailureThresholdCount());
-                    continue;
-                }
-
-                if ("DOWN".equalsIgnoreCase(vendor.getHealthStatus())) {
-                    boolean success = notifier.probeVendorGateway(vendor.getVendorCd());
-                    if (success) {
-                        int nextSuccessCount = vendor.getConsecutiveSuccessCount() + 1;
-                        vendor.setConsecutiveSuccessCount(nextSuccessCount);
-                        repository.updateSuccessProgress(vendor, nextSuccessCount, now);
-                        if (nextSuccessCount >= config.getSuccessThresholdCount()) {
-                            repository.markVendorUp(vendor);
-                            updated++;
-                            log.info("Vendor {} marked UP after {} consecutive successful checks",
-                                    vendor.getVendorCd(), nextSuccessCount);
-                        } else {
-                            log.info("Vendor {} remains DOWN. Success streak {}/{}",
-                                    vendor.getVendorCd(), nextSuccessCount, config.getSuccessThresholdCount());
-                        }
+                boolean success = notifier.probeVendorGateway(vendor.getVendorCd());
+                if (success) {
+                    int nextSuccessCount = vendor.getConsecutiveSuccessCount() + 1;
+                    vendor.setConsecutiveSuccessCount(nextSuccessCount);
+                    if (nextSuccessCount >= config.getSuccessThresholdCount()) {
+                        repository.markVendorUp(vendor);
+                        updated++;
+                        log.info("Vendor {} marked UP after {} consecutive successful checks",
+                                vendor.getVendorCd(), nextSuccessCount);
                     } else {
-                        vendor.setConsecutiveSuccessCount(0);
-                        repository.resetSuccessProgress(vendor);
-                        log.info("Vendor {} remains DOWN because API probe returned empty response", vendor.getVendorCd());
+                        log.info("Vendor {} remains DOWN. Success streak {}/{}",
+                                vendor.getVendorCd(), nextSuccessCount, config.getSuccessThresholdCount());
                     }
+                } else {
+                    log.info("Vendor {} remains DOWN because API probe returned empty response", vendor.getVendorCd());
                 }
             } catch (Exception ex) {
-                if ("DOWN".equalsIgnoreCase(vendor.getHealthStatus())) {
-                    try {
-                        vendor.setConsecutiveSuccessCount(0);
-                        repository.resetSuccessProgress(vendor);
-                    } catch (Exception ignored) {
-                    }
-                }
                 log.error("Error while processing vendor {}", vendor.getVendorCd(), ex);
             }
         }
