@@ -6,6 +6,8 @@ import com.icici.vendorhealthcheckservice.repository.VendorHealthRepository;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,7 @@ public class VendorHealthCheckService {
 
     private final VendorHealthRepository repository;
     private final AtomicReference<LocalDateTime> lastExecution = new AtomicReference<>();
+    private final Map<Long, Integer> downVendorSuccessStreak = new ConcurrentHashMap<>();
     private final VendorHealthNotifier notifier;
 
     public VendorHealthCheckService(VendorHealthRepository repository, VendorHealthNotifier notifier) {
@@ -54,26 +57,41 @@ public class VendorHealthCheckService {
     }
 
     private void processVendors(VendorHealthConfig config, LocalDateTime now) {
-        List<VendorHealthDetail> vendors = repository.fetchDownVendors();
+        List<VendorHealthDetail> vendors = repository.fetchAllVendors();
         int updated = 0;
 
         for (VendorHealthDetail vendor : vendors) {
             try {
-                boolean success = notifier.probeVendorGateway(vendor.getVendorCd());
-                if (success) {
-                    int nextSuccessCount = vendor.getConsecutiveSuccessCount() + 1;
-                    vendor.setConsecutiveSuccessCount(nextSuccessCount);
-                    if (nextSuccessCount >= config.getSuccessThresholdCount()) {
-                        repository.markVendorUp(vendor);
+                if ("UP".equalsIgnoreCase(vendor.getHealthStatus())) {
+                    if (vendor.getConsecutiveErrorCount() > config.getFailureThresholdCount()) {
+                        vendor.setDownSince(vendor.getDownSince() == null ? now : vendor.getDownSince());
+                        repository.markVendorDown(vendor);
                         updated++;
-                        log.info("Vendor {} marked UP after {} consecutive successful checks",
-                                vendor.getVendorCd(), nextSuccessCount);
-                    } else {
-                        log.info("Vendor {} remains DOWN. Success streak {}/{}",
-                                vendor.getVendorCd(), nextSuccessCount, config.getSuccessThresholdCount());
+                        log.info("Vendor {} marked DOWN because consecutive error count {} exceeded threshold {}",
+                                vendor.getVendorCd(), vendor.getConsecutiveErrorCount(), config.getFailureThresholdCount());
                     }
-                } else {
-                    log.info("Vendor {} remains DOWN because API probe returned empty response", vendor.getVendorCd());
+                    continue;
+                }
+
+                if ("DOWN".equalsIgnoreCase(vendor.getHealthStatus())) {
+                    boolean success = notifier.probeVendorGateway(vendor.getVendorCd());
+                    if (success) {
+                        int nextSuccessCount = downVendorSuccessStreak.getOrDefault(vendor.getId(), 0) + 1;
+                        downVendorSuccessStreak.put(vendor.getId(), nextSuccessCount);
+                        if (nextSuccessCount >= config.getSuccessThresholdCount()) {
+                            repository.markVendorUp(vendor);
+                            downVendorSuccessStreak.remove(vendor.getId());
+                            updated++;
+                            log.info("Vendor {} marked UP after {} consecutive successful checks",
+                                    vendor.getVendorCd(), nextSuccessCount);
+                        } else {
+                            log.info("Vendor {} remains DOWN. Success streak {}/{}",
+                                    vendor.getVendorCd(), nextSuccessCount, config.getSuccessThresholdCount());
+                        }
+                    } else {
+                        downVendorSuccessStreak.remove(vendor.getId());
+                        log.info("Vendor {} remains DOWN because API probe returned empty response", vendor.getVendorCd());
+                    }
                 }
             } catch (Exception ex) {
                 log.error("Error while processing vendor {}", vendor.getVendorCd(), ex);

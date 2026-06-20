@@ -53,6 +53,11 @@ public class VendorHealthRepository {
         return castResult(result.get("vendorResult"));
     }
 
+    public List<VendorHealthDetail> fetchAllVendors() {
+        Map<String, Object> result = healthCheckConfigDetailsCall.execute(new MapSqlParameterSource().addValue("FLAG", "GET_ALL_VENDOR_HEALTH_DATA"));
+        return castResult(result.get("vendorResult"));
+    }
+
     public void markVendorDown(VendorHealthDetail vendor) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("ID", vendor.getId())
